@@ -76,19 +76,32 @@ class ManagerBOM:
                         row.item.get_properties(ManagerBOM._MATERIAL_ITEM_PROPERTIES)
                     )
 
-                    # Data for sheet material items
-                    if row.item.is_sheet_metal():
-                        row_data.update(
-                            row.item.get_properties(
-                                ManagerBOM._FLAT_MATERIAL_PROPERTIES
-                            )
-                        )
-                        row_data["Type"] = "sheet material"
-
                     # Data for profile material items
-                    elif row.item.is_modeling():
+                    if row.item.is_modeling():
                         row_data.update(row.item.get_size())
                         row_data["Type"] = "profile material"
+
+                    # Data for sheet material items
+                    elif row.item.is_sheet_metal():
+                        # Consider strips as profile materials
+                        if row_data["Material"].startswith("Полоса"):
+                            size = row.item.get_properties(
+                                ("Flat Pattern Length", "Flat Pattern Width")
+                            )
+                            # Convert cm to mm
+                            row_data["Size Z"] = max(size.values()) * 10
+                            row_data["Size X"] = min(size.values()) * 10
+                            # Thickness of the strips, relatively small
+                            row_data["Size Y"] = 0
+                            row_data["Type"] = "profile material"
+
+                        else:
+                            row_data.update(
+                                row.item.get_properties(
+                                    ManagerBOM._FLAT_MATERIAL_PROPERTIES
+                                )
+                            )
+                            row_data["Type"] = "sheet material"
 
             if len(row_data) > initial_row_data_size:
                 self._data.append(row_data)
